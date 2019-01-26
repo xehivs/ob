@@ -5,14 +5,14 @@ from pathlib import Path
 from matplotlib.colors import cnames
 from scipy import io
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler as scaler
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import requests
 
 
-DATA = Path('./dataset/')
+DATA = Path('./data/')
 IMG = Path('./img/')
 
 DATA.mkdir(parents=True, exist_ok=True)
@@ -25,6 +25,8 @@ def download_dataset(url: str):
     if fp.exists():
         print(f'{fp} was already downloaded')
         return
+
+    print(f'downloading {fp}')
 
     resp = requests.get(url)
     resp.raise_for_status()
@@ -91,34 +93,40 @@ def main():
     y = X.pop('target').astype(int)
     unique_y = len(y.unique())
 
-    # print('X.describe')
-    # print(X.describe())
+    X2 = scaler().fit(X).transform(X)
 
-    sc = StandardScaler().fit(X)
-    X2 = sc.transform(X)
+    n_components = 4
 
-    # print('X2.describe')
-    # print(pd.DataFrame(X2).describe())
+    pca = PCA(n_components=n_components).fit(X2, y)
+    X_pca = pca.fit_transform(X2)
 
-    pca = PCA(n_components=2).fit(X2, y)
-
-    # X_r2 = pca.fit_transform(X2)
-    # print(X_r2.shape)
-
-    c1, c2 = pca.transform(X2).reshape((2, -1))
+    fig, ax = plt.subplots(1, 1)
+    ax.set_xlabel('Principal Components')
+    ax.set_ylabel('Variance Ratio')
+    ax.set_title('Variance ratio for PCA on Indian Pines dataset')
+    ax.grid()
+    ax.set_xticks(range(1, n_components + 1))
+    ax.bar(range(1, n_components + 1), pca.explained_variance_ratio_)
+    fig.savefig(IMG / 'pca_components.png')
 
     colorlist = np.random.choice(
         list(cnames.keys()), unique_y, replace=False).tolist()
 
     colors = y.map(lambda x: colorlist[x])
 
-    print(colors)
+    df = pd.DataFrame(X_pca[:, :2])
+    df = pd.concat([df, y, colors], axis=1)
+    df.columns = ['PCA1', 'PCA2', 'target', 'color']
 
-    plt.scatter(c1, c2, color=colors)
-    plt.show()
+    df = df[df['target'] != 0]
 
-    # print('X3.describe')
-    # print(pd.DataFrame(X3).describe())
+    fig, ax = plt.subplots(1, 1)
+    ax.set_xlabel('PC-1')
+    ax.set_ylabel('PC-2')
+    ax.set_title('PCA on Indian Pines dataset')
+    ax.grid()
+    ax.scatter(df['PCA1'], df['PCA2'], color=df['color'], s=3)
+    fig.savefig(IMG / 'pc1_pc2.png')
 
 
 if __name__ == '__main__':
