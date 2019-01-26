@@ -50,7 +50,7 @@ def load_data(fn: str) -> np.ndarray:
 def scale2int(x: np.ndarray) -> np.ndarray:
     a = x - x.min()
     b = a / a.max() * 255
-    c = b.astype(int)
+    c = b.astype(np.uint8)
     return c
 
 
@@ -87,7 +87,9 @@ def main():
 
     ipc = load_data(DATA / 'Indian_pines_corrected.mat')
 
-    plt.imsave(IMG / '111.png', scale2int(ipc[..., 111]))
+    p111 = scale2int(ipc[..., 111])
+    plt.imsave(IMG / '111.png', p111)
+    plt.imsave(IMG / '111_canny.png', canny(p111))
 
     data = get_data(DATA / 'indian_pines.csv', gt, ipc)
 
@@ -139,6 +141,7 @@ def main():
 
     gt2 = cv2.imread((IMG / 'gt.png').as_posix(), 0)
     plt.imsave(IMG / 'gt_canny.png', canny(gt2))
+
 
 if __name__ == '__main__':
     main()
